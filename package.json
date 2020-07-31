@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "homepage": "https://github.com/thproxy/ServiceNowEvaluator",
   "main": "src/index.js",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/thproxy/ServiceNowEvaluator.git"
