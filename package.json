@@ -1,5 +1,5 @@
 {
-  "name": "servicenow-evaluator",
+  "name": "@thproxy/servicenow-evaluator",
   "version": "0.0.1",
   "homepage": "https://github.com/thproxy/ServiceNowEvaluator",
   "main": "src/index.js",
