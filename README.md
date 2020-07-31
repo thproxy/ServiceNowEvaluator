@@ -25,3 +25,9 @@ const Evaluator = require('servicenow-evaluator');
   console.log(result);
 })();
 ```
+
+## Some extra information
+
+As mentioned in the comment, you need to write code that can be directly run on
+ServiceNow. This also means that the function provided to `Evaluator.prototype.evaluate`
+must use **function () { }** and not an arrow function.
