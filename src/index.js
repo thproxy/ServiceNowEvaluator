@@ -54,8 +54,8 @@ module.exports = class {
     };
   }
 
-  static infoifyFn(fn) {
-    return `var result = (${fn})(); var output = result instanceof Object ? JSON.stringify(result) : result; gs.info(output)`;
+  static infoifyFn(fn, args) {
+    return `var result = (${fn})(${JSON.stringify(args).slice(1, -1)}); var output = result instanceof Object ? JSON.stringify(result) : result; gs.info(output)`;
   }
 
   fetchJar(url, opts = {}) {
@@ -85,16 +85,16 @@ module.exports = class {
       });
   }
 
-  async evaluate(fn) {
+  async evaluate(fn, { scope = 'global', args = []} = {}) {
     if (!this.connected) {
       throw new Error('Cannot evaluate without logging in first.');
     }
     return this.fetchJar(`${this.instance}/sys.scripts.do`, {
       method: 'POST',
       body: new URLSearchParams({
-        script: this.constructor.infoifyFn(fn),
+        script: this.constructor.infoifyFn(fn, args),
         runscript: 'Run Script',
-        sys_scope: 'global',
+        sys_scope: scope,
       }),
     })
       .then(this.cookies.updateCookies)
