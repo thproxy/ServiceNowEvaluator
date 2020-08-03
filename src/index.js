@@ -107,7 +107,7 @@ module.exports = class {
       });
   }
 
-  async evaluate(fn, { scope = 'global', args = [] } = {}) {
+  evaluate(fn, { scope = 'global', args = [] } = {}) {
     if (!this.connected) {
       throw new Error('Cannot evaluate without logging in first.');
     }
