@@ -36,6 +36,7 @@ module.exports = class {
     this.cookies = new CookieJar();
     this.instance = instance;
     this.connected = false;
+    this.csrf = true;
   }
 
   static extractResult(resText) {
@@ -61,6 +62,18 @@ module.exports = class {
   fetchJar(url, opts = {}) {
     if (!opts.headers) opts.headers = {};
     opts.headers.cookie = this.cookies;
+
+    if (opts.method && opts.method !== 'GET' && this.connected && this.csrf) {
+      // if csrf protection is enabled, we have to pull the token off of some page. fortunately the home page works
+      return this.fetchJar(`${this.instance}/navpage.do`)
+        .then((res) => res.text())
+        .then((text) => text.match(/var g_ck = '(.*?)'/)[1])
+        .then((ck) => {
+          opts.body.append('sysparm_ck', ck);
+          return fetch(url, opts);
+        })
+        .then(this.cookies.updateCookies);
+    }
     return fetch(url, opts)
       .then(this.cookies.updateCookies);
   }
@@ -76,16 +89,25 @@ module.exports = class {
       }),
     })
       .then((res) => this.fetchJar(res.headers.get('location')))
-      .then((res) => res.text())
-      .then((text) => {
-        if (!text.includes('Establishing session')) {
+      .then((res) => {
+        if (res.headers.get('x-is-logged-in') !== 'true') {
           throw new Error('Failed to login.');
         }
         this.connected = true;
+      })
+      // eslint-disable-next-line prefer-arrow-callback, func-names
+      .then(() => this.evaluate(function () {
+        // eslint-disable-next-line no-var, no-undef
+        var gr = new GlideRecord('sys_properties');
+        gr.get('name', 'glide.security.use_csrf_token');
+        return gr.getValue('value') === 'true';
+      }))
+      .then((result) => {
+        this.csrf = result.output;
       });
   }
 
-  async evaluate(fn, { scope = 'global', args = []} = {}) {
+  async evaluate(fn, { scope = 'global', args = [] } = {}) {
     if (!this.connected) {
       throw new Error('Cannot evaluate without logging in first.');
     }
