@@ -59,13 +59,13 @@ module.exports = class {
     return `var result = (${fn})(${JSON.stringify(args).slice(1, -1)}); var output = result instanceof Object ? JSON.stringify(result) : result; gs.info(output)`;
   }
 
-  fetchJar(url, opts = {}) {
+  fetch(url, opts = {}) {
     if (!opts.headers) opts.headers = {};
     opts.headers.cookie = this.cookies;
 
     if (opts.method && opts.method !== 'GET' && this.connected && this.csrf) {
       // if csrf protection is enabled, we have to pull the token off of some page. fortunately the home page works
-      return this.fetchJar(`${this.instance}/navpage.do`)
+      return this.fetch(`${this.instance}/navpage.do`)
         .then((res) => res.text())
         .then((text) => text.match(/var g_ck = '(.*?)'/)[1])
         .then((ck) => {
@@ -79,7 +79,7 @@ module.exports = class {
   }
 
   login(username, password) {
-    return this.fetchJar(`${this.instance}/login.do`, {
+    return this.fetch(`${this.instance}/login.do`, {
       method: 'POST',
       redirect: 'manual',
       body: new URLSearchParams({
@@ -88,7 +88,7 @@ module.exports = class {
         sys_action: 'sysverb_login',
       }),
     })
-      .then((res) => this.fetchJar(res.headers.get('location')))
+      .then((res) => this.fetch(res.headers.get('location')))
       .then((res) => {
         if (res.headers.get('x-is-logged-in') !== 'true') {
           throw new Error('Failed to login.');
@@ -111,7 +111,7 @@ module.exports = class {
     if (!this.connected) {
       throw new Error('Cannot evaluate without logging in first.');
     }
-    return this.fetchJar(`${this.instance}/sys.scripts.do`, {
+    return this.fetch(`${this.instance}/sys.scripts.do`, {
       method: 'POST',
       body: new URLSearchParams({
         script: this.constructor.infoifyFn(fn, args),
