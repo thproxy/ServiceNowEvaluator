@@ -55,8 +55,8 @@ module.exports = class {
     };
   }
 
-  static infoifyFn(fn, args) {
-    return `var result = (${fn})(${JSON.stringify(args).slice(1, -1)}); var output = result instanceof Object ? JSON.stringify(result) : result; gs.info(output)`;
+  static infoifyFn(fn, args, fnArgs) {
+    return `${fnArgs.map(String).join(';')};var result = (${fn})(${JSON.stringify(args).slice(1, -1)}); var output = result instanceof Object ? JSON.stringify(result) : result; gs.info(output)`;
   }
 
   fetch(url, opts = {}) {
@@ -107,14 +107,14 @@ module.exports = class {
       });
   }
 
-  evaluate(fn, { scope = 'global', args = [] } = {}) {
+  evaluate(fn, { scope = 'global', args = [], fnArgs = [] } = {}) {
     if (!this.connected) {
       throw new Error('Cannot evaluate without logging in first.');
     }
     return this.fetch(`${this.instance}/sys.scripts.do`, {
       method: 'POST',
       body: new URLSearchParams({
-        script: this.constructor.infoifyFn(fn, args),
+        script: this.constructor.infoifyFn(fn, args, fnArgs),
         runscript: 'Run Script',
         sys_scope: scope,
       }),
