@@ -7,7 +7,7 @@ with it.
 ## Example
 
 ```javascript
-const Evaluator = require('servicenow-evaluator');
+const Evaluator = require("@thproxy/servicenow-evaluator");;
 
 (async () => {
   const e = new Evaluator('https://your-instance.service-now.com');
