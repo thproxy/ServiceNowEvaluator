@@ -10,9 +10,11 @@ class CookieJar {
   }
 
   updateCookies(res) {
-    res.headers.raw()['set-cookie'].forEach((cookie) => {
-      this.setCookie(...cookie.split(';')[0].split('='));
-    });
+    if (res.headers.raw()['set-cookie']) {
+      res.headers.raw()['set-cookie'].forEach((cookie) => {
+        this.setCookie(...cookie.split(';')[0].split('='));
+      });
+    }
     return res;
   }
 
@@ -36,7 +38,7 @@ module.exports = class {
     this.cookies = new CookieJar();
     this.instance = instance;
     this.connected = false;
-    this.csrf = true;
+    this.csrf = null;
   }
 
   static extractResult(resText) {
@@ -63,15 +65,12 @@ module.exports = class {
     if (!opts.headers) opts.headers = {};
     opts.headers.cookie = this.cookies;
 
-    if (opts.method && opts.method !== 'GET' && this.connected && this.csrf) {
-      // if csrf protection is enabled, we have to pull the token off of some page. fortunately the home page works
-      return this.fetch(`${this.instance}/navpage.do`)
-        .then((res) => res.text())
-        .then((text) => text.match(/var g_ck = '(.*?)'/)[1])
-        .then((ck) => {
-          opts.body.append('sysparm_ck', ck);
-          return fetch(url, opts);
-        })
+    if (opts.method && opts.method !== 'GET' && this.csrf) {
+      // it's fine to add the random null even if csrf isn't enabled
+      opts.body.append('sysparm_ck', this.csrf);
+      opts.headers['x-usertoken'] = this.csrf;
+
+      return fetch(url, opts)
         .then(this.cookies.updateCookies);
     }
     return fetch(url, opts)
@@ -88,22 +87,23 @@ module.exports = class {
         sys_action: 'sysverb_login',
       }),
     })
-      .then((res) => this.fetch(res.headers.get('location')))
+      .then((res) => {
+        if (!res.headers.get('location')) {
+          throw new Error('Failed to login.');
+        }
+        return this.fetch(res.headers.get('location'));
+      })
       .then((res) => {
         if (res.headers.get('x-is-logged-in') !== 'true') {
           throw new Error('Failed to login.');
         }
         this.connected = true;
-      })
-      // eslint-disable-next-line prefer-arrow-callback, func-names
-      .then(() => this.evaluate(function () {
-        // eslint-disable-next-line no-var, no-undef
-        var gr = new GlideRecord('sys_properties');
-        gr.get('name', 'glide.security.use_csrf_token');
-        return gr.getValue('value') === 'true';
-      }))
-      .then((result) => {
-        this.csrf = result.output;
+
+        // pick up the csrf token from the page if it exists
+        return res.text()
+          .then((text) => text.match(/var g_ck = '(.*?)'/)[1])
+          .catch(() => { this.csrf = null; })
+          .then((csrfToken) => { this.csrf = csrfToken; });
       });
   }
 
