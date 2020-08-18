@@ -42,7 +42,7 @@ module.exports = class {
   }
 
   static extractResult(resText) {
-    const output = resText.match(/<PRE>\*\*\* Script: ((?:.|\n)*?)<BR\/>/);
+    const output = resText.match(/\*\*\* Script: ((?:.|\n)*?)<BR\/>/);
     // todo: fill this table out
     const htmlEntities = {
       '&amp;': '&',
